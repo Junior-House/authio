@@ -5,13 +5,14 @@ import keras
 from keras.models import Sequential
 import keras.layers as layers
 import matplotlib.pyplot as plt
+import keras_metrics as km
 
 # Function: prepareDataset
 # Description: 
 #   Accepts the file names for the processed valid and invalid
 #   data, as well as the train-test split values, loads the data,
 #   and splits the data. 
-def prepareDataset(validDataFileName, invalidDataFileName, dataSplit, invalidCount=1000) -> tuple:
+def prepareDataset(validDataFileName, invalidDataFileName, dataSplit, invalidCount=1000, useValidCount=False) -> tuple:
     assert len(dataSplit) == 2 and dataSplit[0] + dataSplit[1] == 1.0
 
     # load valid data
@@ -30,7 +31,8 @@ def prepareDataset(validDataFileName, invalidDataFileName, dataSplit, invalidCou
     invalidDataframe = invalidDataframe.reindex(columns=cols)
     invalidDataframe = invalidDataframe.as_matrix()
     np.random.shuffle(invalidDataframe)
-    invalidDataframe = invalidDataframe[:invalidCount, :]
+    if useValidCount: invalidDataframe = invalidDataframe[:validDataframe.shape[0], :]
+    else: invalidDataframe = invalidDataframe[:invalidCount, :]
 
     # create train/test split
     validTrainData = validDataframe[:int(validDataframe.shape[0] * dataSplit[0]), :]
@@ -78,7 +80,7 @@ def logisticRegressionModel(data) -> None:
     batchSize = 48
     numEpochs = 50
 
-    # build model
+     # build model
     model = Sequential()
     model.add(layers.Dense(outputDim, input_dim=inputDim, activation='softmax'))
 
@@ -108,7 +110,7 @@ def shallowNeuralNetworkModel(data) -> None:
 
     # compile model
     model.summary()
-    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy']) 
+    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy', km.binary_true_positive()]) 
     model.fit(xTrain, yTrain, batch_size=batchSize, epochs=numEpochs, verbose=True, validation_data=(xTest, yTest))
     return model
 
@@ -121,8 +123,8 @@ def deepNeuralNetworkModel(data) -> None:
     inputDim, outputDim = xTrain.shape[1], 2
     
     # define hyperparameters
-    batchSize = 32
-    numEpochs = 30
+    batchSize = 48
+    numEpochs = 32
     layer_one_size = 16
     layer_two_size = 16
     layer_three_size = 16
@@ -130,19 +132,19 @@ def deepNeuralNetworkModel(data) -> None:
     # build model
     model = Sequential()
     model.add(layers.Dense(layer_one_size, input_dim=inputDim, activation='tanh'))
-    model.add(layers.Dropout(0.1))
+    model.add(layers.Dropout(0.2))
     model.add(layers.Dense(layer_one_size, activation='tanh'))
-    model.add(layers.Dropout(0.1))
+    model.add(layers.Dropout(0.2))
     model.add(layers.Dense(layer_two_size, activation='tanh'))
-    model.add(layers.Dropout(0.1))
+    model.add(layers.Dropout(0.2))
     model.add(layers.Dense(layer_three_size, activation='tanh'))
-    model.add(layers.Dropout(0.1))
+    model.add(layers.Dropout(0.2))
     model.add(layers.Dense(outputDim, activation='softmax'))
 
     # compile model
     model.summary()
     optimizer = keras.optimizers.Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.999, amsgrad=False)
-    model.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy']) 
+    model.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy', km.binary_true_positive()]) 
     history = model.fit(xTrain, yTrain, batch_size=batchSize, epochs=numEpochs, verbose=True, validation_data=(xTest, yTest))
 
     # plot model progress
@@ -185,7 +187,7 @@ def evaluateModel(model, data):
     print("F1: {}".format((2 * true_positives) / (2 * true_positives + false_positives + false_negatives)))
 
 def main() -> None:
-    data = prepareDataset('data\\processed-valid-data.csv', 'data\\processed-invalid-data.csv', (0.80, 0.20))
+    data = prepareDataset('data\\processed-valid-data.csv', 'data\\processed-invalid-data.csv', (0.95, 0.05), useValidCount=True)
     data = sliceDataset(data)
     model = deepNeuralNetworkModel(data)
     evaluateModel(model, data)
