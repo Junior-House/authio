@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 #   Accepts the file names for the processed valid and invalid
 #   data, as well as the train-test split values, loads the data,
 #   and splits the data. 
-def prepareDataset(validDataFileName, invalidDataFileName, dataSplit, invalidCount=2000) -> tuple:
+def prepareDataset(validDataFileName, invalidDataFileName, dataSplit, invalidCount=1000) -> tuple:
     assert len(dataSplit) == 2 and dataSplit[0] + dataSplit[1] == 1.0
 
     # load valid data
@@ -69,23 +69,90 @@ def sliceDataset(data) -> tuple:
 # Function: logisticRegressionModel
 # Description: 
 #   Accepts the train/test data and train/test labels, 
-#   runs, and returns a simple logistic regression model.
+#   runs, and returns a trained logistic regression model.
 def logisticRegressionModel(data) -> None:
     xTrain, xTest, yTrain, yTest = data
     inputDim, outputDim = xTrain.shape[1], 2
+    
+    # define hyperparameters
+    batchSize = 48
+    numEpochs = 50
 
     # build model
     model = Sequential()
     model.add(layers.Dense(outputDim, input_dim=inputDim, activation='softmax'))
 
-    # define hyperparameters
-    batchSize = 32
-    numEpochs = 20
-
     # compile model
     model.summary()
     model.compile(optimizer='sgd', loss='categorical_crossentropy', metrics=['accuracy']) 
     model.fit(xTrain, yTrain, batch_size=batchSize, epochs=numEpochs, verbose=True, validation_data=(xTest, yTest))
+    return model
+
+# Function: logisticRegressionModel
+# Description: 
+#   Accepts the train/test data and train/test labels, 
+#   runs, and returns a trained shallow neural network model.
+def shallowNeuralNetworkModel(data) -> None:
+    xTrain, xTest, yTrain, yTest = data
+    inputDim, outputDim = xTrain.shape[1], 2
+    
+    # define hyperparameters
+    batchSize = 64
+    numEpochs = 50
+    layer_one_size = 5
+
+    # build model
+    model = Sequential()
+    model.add(layers.Dense(layer_one_size, input_dim=inputDim, activation='tanh'))
+    model.add(layers.Dense(outputDim, activation='softmax'))
+
+    # compile model
+    model.summary()
+    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy']) 
+    model.fit(xTrain, yTrain, batch_size=batchSize, epochs=numEpochs, verbose=True, validation_data=(xTest, yTest))
+    return model
+
+# Function: logisticRegressionModel
+# Description: 
+#   Accepts the train/test data and train/test labels, 
+#   runs, and returns a trained deep neural network model.
+def deepNeuralNetworkModel(data) -> None:
+    xTrain, xTest, yTrain, yTest = data
+    inputDim, outputDim = xTrain.shape[1], 2
+    
+    # define hyperparameters
+    batchSize = 32
+    numEpochs = 30
+    layer_one_size = 16
+    layer_two_size = 16
+    layer_three_size = 16
+
+    # build model
+    model = Sequential()
+    model.add(layers.Dense(layer_one_size, input_dim=inputDim, activation='tanh'))
+    model.add(layers.Dropout(0.1))
+    model.add(layers.Dense(layer_one_size, activation='tanh'))
+    model.add(layers.Dropout(0.1))
+    model.add(layers.Dense(layer_two_size, activation='tanh'))
+    model.add(layers.Dropout(0.1))
+    model.add(layers.Dense(layer_three_size, activation='tanh'))
+    model.add(layers.Dropout(0.1))
+    model.add(layers.Dense(outputDim, activation='softmax'))
+
+    # compile model
+    model.summary()
+    optimizer = keras.optimizers.Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.999, amsgrad=False)
+    model.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy']) 
+    history = model.fit(xTrain, yTrain, batch_size=batchSize, epochs=numEpochs, verbose=True, validation_data=(xTest, yTest))
+
+    # plot model progress
+    plt.plot(history.history['accuracy'])
+    plt.plot(history.history['val_accuracy'])
+    plt.title('model accuracy')
+    plt.ylabel('accuracy')
+    plt.xlabel('epoch')
+    plt.legend(['training', 'validation'], loc='best')
+    plt.show()
     return model
 
 # Function: evaluateModel
@@ -118,9 +185,10 @@ def evaluateModel(model, data):
     print("F1: {}".format((2 * true_positives) / (2 * true_positives + false_positives + false_negatives)))
 
 def main() -> None:
-    data = prepareDataset('data\\processed-valid-data.csv', 'data\\processed-invalid-data.csv', (0.90, 0.10))
+    data = prepareDataset('data\\processed-valid-data.csv', 'data\\processed-invalid-data.csv', (0.80, 0.20))
     data = sliceDataset(data)
-    logisticRegressionModel(data)
+    model = deepNeuralNetworkModel(data)
+    evaluateModel(model, data)
 
 if __name__ == "__main__":
     main()
