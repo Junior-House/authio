@@ -21,7 +21,7 @@ def prepareDataset(validDataFileName, invalidDataFileName, dataSplit, invalidCou
     cols = validDataframe.columns.tolist()
     cols.insert(0, cols.pop(cols.index('label')))
     validDataframe = validDataframe.reindex(columns=cols)
-    validDataframe = validDataframe.as_matrix()
+    validDataframe = np.concatenate((validDataframe.as_matrix(), validDataframe.as_matrix(), validDataframe.as_matrix(), validDataframe.as_matrix()))
 
     # load invalid data
     invalidDataframe = pd.read_csv(invalidDataFileName)
@@ -123,22 +123,30 @@ def deepNeuralNetworkModel(data) -> None:
     inputDim, outputDim = xTrain.shape[1], 2
     
     # define hyperparameters
-    batchSize = 48
-    numEpochs = 32
-    layer_one_size = 16
-    layer_two_size = 16
-    layer_three_size = 16
+    batchSize = 32
+    numEpochs = 30
+    layer_one_size = 64
+    layer_two_size = 64
+    layer_three_size = 64
+    layer_four_size = 64
 
     # build model
     model = Sequential()
     model.add(layers.Dense(layer_one_size, input_dim=inputDim, activation='tanh'))
-    model.add(layers.Dropout(0.2))
+    model.add(layers.BatchNormalization())
+    model.add(layers.Dropout(0.01))
     model.add(layers.Dense(layer_one_size, activation='tanh'))
-    model.add(layers.Dropout(0.2))
+    model.add(layers.BatchNormalization())
+    model.add(layers.Dropout(0.01))
     model.add(layers.Dense(layer_two_size, activation='tanh'))
-    model.add(layers.Dropout(0.2))
+    model.add(layers.BatchNormalization())
+    model.add(layers.Dropout(0.01))
     model.add(layers.Dense(layer_three_size, activation='tanh'))
-    model.add(layers.Dropout(0.2))
+    model.add(layers.BatchNormalization())
+    model.add(layers.Dropout(0.01))
+    model.add(layers.Dense(layer_four_size, activation='tanh'))
+    model.add(layers.BatchNormalization())
+    model.add(layers.Dropout(0.01))
     model.add(layers.Dense(outputDim, activation='softmax'))
 
     # compile model
@@ -187,7 +195,7 @@ def evaluateModel(model, data):
     print("F1: {}".format((2 * true_positives) / (2 * true_positives + false_positives + false_negatives)))
 
 def main() -> None:
-    data = prepareDataset('data\\processed-valid-data.csv', 'data\\processed-invalid-data.csv', (0.95, 0.05), useValidCount=True)
+    data = prepareDataset('data\\processed-valid-data.csv', 'data\\processed-invalid-data.csv', (0.80, 0.20), useValidCount=True)
     data = sliceDataset(data)
     model = deepNeuralNetworkModel(data)
     evaluateModel(model, data)
