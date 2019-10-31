@@ -127,8 +127,8 @@ def deepNeuralNetworkModel(data) -> None:
     numEpochs = 30
     layer_one_size = 64
     layer_two_size = 64
-    layer_three_size = 64
-    layer_four_size = 64
+    layer_three_size = 32
+    layer_four_size = 16
 
     # build model
     model = Sequential()
