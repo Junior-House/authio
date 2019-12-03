@@ -6,6 +6,8 @@ from keras.models import Sequential
 import keras.layers as layers
 import matplotlib.pyplot as plt
 import keras_metrics as km
+from scipy.special import softmax
+from keras.callbacks import EarlyStopping
 
 # Function: prepareDataset
 # Description: 
@@ -63,9 +65,9 @@ def sliceDataset(data) -> tuple:
     yTest = testData[:, 0]
 
     # one-hot encode data
-    outputDim = 2
-    yTrain = keras.utils.to_categorical(yTrain, outputDim)
-    yTest = keras.utils.to_categorical(yTest, outputDim)
+    output_dim = 2
+    yTrain = keras.utils.to_categorical(yTrain, output_dim)
+    yTest = keras.utils.to_categorical(yTest, output_dim)
     return (xTrain, xTest, yTrain, yTest)
 
 # Function: logisticRegressionModel
@@ -74,7 +76,7 @@ def sliceDataset(data) -> tuple:
 #   runs, and returns a trained logistic regression model.
 def logisticRegressionModel(data) -> None:
     xTrain, xTest, yTrain, yTest = data
-    inputDim, outputDim = xTrain.shape[1], 2
+    input_dim, output_dim = xTrain.shape[1], 2
     
     # define hyperparameters
     batchSize = 48
@@ -82,7 +84,7 @@ def logisticRegressionModel(data) -> None:
 
      # build model
     model = Sequential()
-    model.add(layers.Dense(outputDim, input_dim=inputDim, activation='softmax'))
+    model.add(layers.Dense(output_dim, input_dim=input_dim, activation='softmax'))
 
     # compile model
     model.summary()
@@ -96,7 +98,7 @@ def logisticRegressionModel(data) -> None:
 #   runs, and returns a trained shallow neural network model.
 def shallowNeuralNetworkModel(data) -> None:
     xTrain, xTest, yTrain, yTest = data
-    inputDim, outputDim = xTrain.shape[1], 2
+    input_dim, output_dim = xTrain.shape[1], 2
     
     # define hyperparameters
     batchSize = 64
@@ -105,8 +107,8 @@ def shallowNeuralNetworkModel(data) -> None:
 
     # build model
     model = Sequential()
-    model.add(layers.Dense(layer_one_size, input_dim=inputDim, activation='tanh'))
-    model.add(layers.Dense(outputDim, activation='softmax'))
+    model.add(layers.Dense(layer_one_size, input_dim=input_dim, activation='tanh'))
+    model.add(layers.Dense(output_dim, activation='softmax'))
 
     # compile model
     model.summary()
@@ -120,40 +122,42 @@ def shallowNeuralNetworkModel(data) -> None:
 #   runs, and returns a trained deep neural network model.
 def deepNeuralNetworkModel(data) -> None:
     xTrain, xTest, yTrain, yTest = data
-    inputDim, outputDim = xTrain.shape[1], 2
+    input_dim, output_dim = xTrain.shape[1], 2
     
     # define hyperparameters
     batchSize = 32
     numEpochs = 30
-    layer_one_size = 64
-    layer_two_size = 64
-    layer_three_size = 32
-    layer_four_size = 16
+    layer_zero_size = 256
+    layer_one_size = 128
+    layer_two_size = 128
+    layer_three_size = 64
+    layer_four_size = 32
+    layer_five_size = 16
 
     # build model
     model = Sequential()
-    model.add(layers.Dense(layer_one_size, input_dim=inputDim, activation='tanh'))
-    model.add(layers.BatchNormalization())
+    model.add(layers.Dense(layer_zero_size, input_dim=input_dim, activation='tanh'))
     model.add(layers.Dropout(0.01))
     model.add(layers.Dense(layer_one_size, activation='tanh'))
     model.add(layers.BatchNormalization())
-    model.add(layers.Dropout(0.01))
     model.add(layers.Dense(layer_two_size, activation='tanh'))
-    model.add(layers.BatchNormalization())
     model.add(layers.Dropout(0.01))
     model.add(layers.Dense(layer_three_size, activation='tanh'))
     model.add(layers.BatchNormalization())
-    model.add(layers.Dropout(0.01))
     model.add(layers.Dense(layer_four_size, activation='tanh'))
-    model.add(layers.BatchNormalization())
     model.add(layers.Dropout(0.01))
-    model.add(layers.Dense(outputDim, activation='softmax'))
+    model.add(layers.Dense(layer_five_size, activation='tanh'))
+    model.add(layers.BatchNormalization())
+    model.add(layers.Dense(output_dim, activation='softmax'))
+
+    # add callback for early-stopping
+    stop = EarlyStopping(monitor='val_loss', patience=6, verbose=1, mode='min')
 
     # compile model
     model.summary()
     optimizer = keras.optimizers.Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.999, amsgrad=False)
-    model.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy', km.binary_true_positive()]) 
-    history = model.fit(xTrain, yTrain, batch_size=batchSize, epochs=numEpochs, verbose=True, validation_data=(xTest, yTest))
+    model.compile(optimizer=optimizer, loss='poisson', metrics=['accuracy', km.binary_true_positive()]) 
+    history = model.fit(xTrain, yTrain, batch_size=batchSize, epochs=numEpochs, callbacks=[stop], verbose=True, validation_data=(xTest, yTest))
 
     # plot model progress
     plt.plot(history.history['accuracy'])
@@ -175,7 +179,8 @@ def evaluateModel(model, data):
     false_positives, false_negatives = 0, 0
 
     # compute custom metrics
-    results = tf.nn.softmax(model.predict(xTest))
+    prediction = model.predict(xTest)
+    results = softmax(prediction, axis=0)
     for i in range(results.shape[0]):
         y = int(yTest[i][1])
         yHat = int(results[i][1] > results[i][0])
