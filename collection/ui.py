@@ -15,11 +15,17 @@ numKeyPresses = 0
 counter = 0
 actualPassword = ".tie5Roanl"
 
+# Function: welcomeUser
+# Description: 
+#   Prints welcome message.
 def welcomeUser():
     print("Please enter your password (hint, it's \".tie5Roanl\" - for now!)")
     print("Press enter to submit your password entry.")
 
-# intercept keyboard events using pynput handler, perform basic error 
+# Function: push_down
+# Description: 
+#   Accepts the push-down key, intercepts keyboard events 
+#   using pynput handler, and perform basic error checking.
 def push_down(key):
     global startTime
     global rawData
@@ -33,7 +39,7 @@ def push_down(key):
         numKeyPresses = 0
         return False
     
-    # if alphanumeric, process it as such
+    # process alphanumeric
     try:
         if startTime == None:
             startTime = time.time()
@@ -44,7 +50,10 @@ def push_down(key):
         if key == keyboard.Key.shift or key == keyboard.Key.shift_r:
             shiftModifier = True
 
-# asyncronous logic for when keys are released, with basic error checking
+# Function: push_down
+# Description: 
+#   Accepts the push-down key, handles asynchronous logic for 
+#   keypress, and perform basic error checking.
 def release(key):
     global startTime
     global rawData
@@ -59,7 +68,9 @@ def release(key):
     except AttributeError:
         pass
 
-# check if a given 'UP' entry has a corresponding down entry
+# Function: entryClosed
+# Description: 
+#   Accepts the push-down key and check 'UP' entry.
 def entryClosed(index, opener):
     global rawData
     for newIndex in range(index, len(rawData)):
@@ -68,7 +79,9 @@ def entryClosed(index, opener):
             return True
     return False
 
-# ensure that every up entry is 'closed' - i.e. there is a down event
+# Function: ensureCompleted
+# Description: 
+#   Ensures that every 'UP' entry is closed.
 def ensureCompleted():
     global endTime
     global startTime
@@ -78,11 +91,14 @@ def ensureCompleted():
         # if this is already a closing entry, ignore it
         if opener[1] == "UP": continue
         
-        # otherwise, check it's closed.  if not, close it at the end time
+        # otherwise, check it's closed
         if not entryClosed(index, opener):
             rawData.append((opener[0], "UP", endTime - startTime))
 
-# find a given up entry's corresponding down entry, if it exists
+# Function: findPrevious
+# Description: 
+#   Accept the input key and find a given up 
+#   entry's corresponding down entry.
 def findPrevious(key):
     global rawData
     first = True
@@ -94,7 +110,10 @@ def findPrevious(key):
         if entry[0] == key and entry[1] == "UP": return None
     return None
 
-# find a given entry's corresponding up/down entry with bounded linear search from a given index
+# Function: findPreviousFromIndex
+# Description: 
+#   Accept the input key and find a given entry's corresponding 
+#   up/down entry with bounded linear search from a given index.
 def findPreviousFromIndex(key, index):
     global rawData
     first = True
@@ -106,7 +125,10 @@ def findPreviousFromIndex(key, index):
         index -=1
     return None
 
-# clear rogue 'up' entries with no down entries from the list (normally happens with weird shift key antics)
+# Function: clearRogueUps
+# Description: 
+#   Clear rogue 'up' entries with no down entries from the 
+#   list (normally happens with weird shift key antics).
 def clearRogueUps():
     global rawData
     if rawData[-1][1] == "UP":
@@ -125,22 +147,28 @@ def clearRogueUps():
                 continue
         index += 1
 
-# ensure that the password was properly entered
+# Function: passwordProperlyEntered
+# Description: 
+#   Ensure that the password was properly entered.
 def passwordProperlyEntered():
     global rawData
     global actualPassword
     
     buildString = ""
     for entry in rawData:
-        if entry[1] == "DOWN":
-            buildString += entry[0]
+        if entry[1] == "DOWN": buildString += entry[0]
     return buildString == actualPassword
 
-# returns a single password attempt from user input
+# Function: getOnePassword
+# Description: 
+#   Returns a single password attempt from user input.
 def getOnePassword():
     return welcomeUserAndCollectUserPasswordData(1, 0, verbose = False)
 
-# actual harness function that gathers user password data entry attempts and returns them to the caller
+# Function: getOnePassword
+# Description: 
+#   Actual harness function that gathers user password data 
+#   entry attempts and returns them to the caller.
 # called from data.py
 def welcomeUserAndCollectUserPasswordData(numPasswordsNeeded, numRunupNeeded, verbose = True):
     global rawData
@@ -171,10 +199,10 @@ def welcomeUserAndCollectUserPasswordData(numPasswordsNeeded, numRunupNeeded, ve
         if passwordProperlyEntered():
             if i >= numRunupNeeded:
                 totalData.append(rawData)
-            if verbose: print("\nFantastic, now enter the password again!  (Trial {} of {}).".format(i + 1, numPasswordsNeeded + numRunupNeeded))
+            if verbose: print("\nFantastic, now enter the password again! \
+                (Trial {} of {}).".format(i + 1, numPasswordsNeeded + numRunupNeeded))
             i += 1
-        else:
-            print("\nPassword mis-entered.  Try again:")
+        else: print("\nPassword mis-entered.  Try again:")
         rawData = []
 
     if verbose: print("Great - we've finished gathering training data from you.  Please wait while we process this information")
