@@ -195,7 +195,7 @@ def evaluateModel(model, data):
     print("F1: {}".format((2 * true_positives) / (2 * true_positives + false_positives + false_negatives)))
 
 def main() -> None:
-    data = prepareDataset('data\\processed-valid-data.csv', 'data\\processed-invalid-data.csv', (0.80, 0.20), useValidCount=True)
+    data = prepareDataset('data/processed-valid-data.csv', 'data/processed-invalid-data.csv', (0.80, 0.20), useValidCount=True)
     data = sliceDataset(data)
     model = deepNeuralNetworkModel(data)
     evaluateModel(model, data)
