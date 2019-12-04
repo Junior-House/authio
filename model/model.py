@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import keras_metrics as km
 from scipy.special import softmax
 from keras.callbacks import EarlyStopping
+import csv
 
 # Function: prepareDataset
 # Description: 
@@ -120,7 +121,7 @@ def shallowNeuralNetworkModel(data) -> None:
 # Description: 
 #   Accepts the train/test data and train/test labels, 
 #   runs, and returns a trained deep neural network model.
-def deepNeuralNetworkModel(data) -> None:
+def deepNeuralNetworkModel(data, verbose=False) -> None:
     xTrain, xTest, yTrain, yTest = data
     input_dim, output_dim = xTrain.shape[1], 2
     
@@ -151,30 +152,31 @@ def deepNeuralNetworkModel(data) -> None:
     model.add(layers.Dense(output_dim, activation='softmax'))
 
     # add callback for early-stopping
-    stop = EarlyStopping(monitor='val_loss', patience=6, verbose=1, mode='min')
+    stop = EarlyStopping(monitor='val_loss', patience=6, verbose=verbose, mode='min')
 
     # compile model
     model.summary()
     optimizer = keras.optimizers.Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.999, amsgrad=False)
     model.compile(optimizer=optimizer, loss='poisson', metrics=['accuracy', km.binary_true_positive()]) 
-    history = model.fit(xTrain, yTrain, batch_size=batchSize, epochs=numEpochs, callbacks=[stop], verbose=True, validation_data=(xTest, yTest))
+    history = model.fit(xTrain, yTrain, batch_size=batchSize, epochs=numEpochs, callbacks=[stop], verbose=verbose, validation_data=(xTest, yTest))
 
     # plot model progress
-    plt.plot(history.history['accuracy'])
-    plt.plot(history.history['val_accuracy'])
-    plt.title('model accuracy')
-    plt.ylabel('accuracy')
-    plt.xlabel('epoch')
-    plt.legend(['training', 'validation'], loc='best')
-    plt.show()
+    if verbose:
+        plt.plot(history.history['accuracy'])
+        plt.plot(history.history['val_accuracy'])
+        plt.title('model accuracy')
+        plt.ylabel('accuracy')
+        plt.xlabel('epoch')
+        plt.legend(['training', 'validation'], loc='best')
+        plt.show()
     return model
 
 # Function: evaluateModel
 # Description: 
 #   Accepts a Keras model and a dataset and 
 #   evaluates custom metrics over the model.
-def evaluateModel(model, data):
-    xTrain, xTest, yTrain, yTest = data
+def evaluateModel(model, data, verbose=False) -> tuple:
+    _, xTest, _, yTest = data
     true_positives, true_negatives = 0, 0
     false_positives, false_negatives = 0, 0
 
@@ -188,22 +190,34 @@ def evaluateModel(model, data):
         elif (not y and not yHat): true_negatives += 1
         elif (y and not yHat): false_positives += 1
         else: false_negatives += 1
-            
-    # print metric results
-    print("\nTrue positives: {} / {}".format(true_positives, true_positives + false_negatives))
-    print("True negatives: {} / {}".format(true_negatives, true_negatives + false_positives))
-    print("False positives: {} / {}".format(false_positives, true_negatives + false_positives))
-    print("False negatives: {} / {}".format(false_negatives, true_positives + false_negatives))
-    print("\nAccuracy: {}".format((true_positives + true_negatives) / (true_positives + true_negatives + false_positives + false_negatives)))
-    print("Recall: {}".format((true_positives) / (true_positives + false_negatives)))
-    print("Precision: {}".format((true_positives) / (true_positives + false_positives)))
-    print("F1: {}".format((2 * true_positives) / (2 * true_positives + false_positives + false_negatives)))
 
-def main() -> None:
-    data = prepareDataset('data/processed-valid-data.csv', 'data/processed-invalid-data.csv', (0.80, 0.20), useValidCount=True)
+    # calculate metrics
+    accuracy = (true_positives + true_negatives) / (true_positives + true_negatives + false_positives + false_negatives)
+    recall = true_positives / (true_positives + false_negatives)
+    precision = true_positives / (true_positives + false_positives)
+    F1 = (2 * true_positives) / (2 * true_positives + false_positives + false_negatives)
+
+    # print metric results
+    if verbose:
+        print("\nTrue positives: {} / {}".format(true_positives, true_positives + false_negatives))
+        print("True negatives: {} / {}".format(true_negatives, true_negatives + false_positives))
+        print("False positives: {} / {}".format(false_positives, true_negatives + false_positives))
+        print("False negatives: {} / {}".format(false_negatives, true_positives + false_negatives))
+        print("\nAccuracy: {}".format(accuracy))
+        print("Recall: {}".format(recall))
+        print("Precision: {}".format(precision))
+        print("F1: {}".format(F1))
+    
+    # return results
+    return accuracy, recall, precision, F1
+
+# Function: runModel
+# Description: 
+#   Runs DNN model on existing data files.
+def runModel() -> tuple:
+    data = prepareDataset('data/processed-valid-data.csv', 'data/processed-invalid-data.csv', \
+        (0.80, 0.20), useValidCount=True)
     data = sliceDataset(data)
     model = deepNeuralNetworkModel(data)
-    evaluateModel(model, data)
-
-if __name__ == "__main__":
-    main()
+    result = evaluateModel(model, data)
+    return result

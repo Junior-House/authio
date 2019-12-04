@@ -1,5 +1,6 @@
 import csv
 import numpy as np
+import os
 
 # Function: collectLabelledData
 # Description: 
@@ -18,7 +19,7 @@ def collectLabelledData(rawDataFileName, userId) -> list:
             labelledRow = []
 
             # label data
-            if rawRow[0] == userId: labelledRow.append(1)
+            if int(rawRow[0]) == userId: labelledRow.append(1)
             else: labelledRow.append(0)
 
             # copy keystroke data
@@ -43,7 +44,6 @@ def processLabelledData(labelledData, validDataFileName, invalidDataFileName) ->
 
     # split labelled data
     for data in labelledData:
-        label = data[0]
         dataArr = np.array(data[1:], dtype=np.float32)
 
         # normalize data
@@ -71,10 +71,16 @@ def writeCSVData(targetFileName, data) -> None:
         # iteratively write data
         for row in data:
             target.writerow(row)
-        
-def main() -> None:
-    labelledData = collectLabelledData('data\\raw-data.csv', 's002')
-    processLabelledData(labelledData, 'data\\processed-valid-data.csv', 'data\\processed-invalid-data.csv')
 
-if __name__ == "__main__":
-    main()
+# Function: buildData
+# Description: 
+#   Accepts the ID for the valid user and builds the
+#   valid and invalid data set.  
+def buildData(validId) -> None:
+    try:
+        os.remove('data/processed-valid-data.csv')
+        os.remove('data/processed-invalid-data.csv')
+    except: pass
+
+    labelledData = collectLabelledData('data/raw-data.csv', validId)
+    processLabelledData(labelledData, 'data/processed-valid-data.csv', 'data/processed-invalid-data.csv')
