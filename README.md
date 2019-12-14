@@ -1,5 +1,7 @@
 # Authio
 
+Implements a densely connected neural network architecture to augment password security through biometric keystroke analysis.  When tested on the CMU Keystroke Dynamics Benchmark Dataset, the model reports a 0% false positive rate and a sub 1% false negative rate.
+
 ```
 Model: "sequential_1"
 _________________________________________________________________
