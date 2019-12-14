@@ -50,10 +50,9 @@ def push_down(key):
         if key == keyboard.Key.shift or key == keyboard.Key.shift_r:
             shiftModifier = True
 
-# Function: push_down
+# Function: release
 # Description: 
-#   Accepts the push-down key, handles asynchronous logic for 
-#   keypress, and perform basic error checking.
+#   Performs asyncronous logic for processing the release of a given key
 def release(key):
     global startTime
     global rawData

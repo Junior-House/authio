@@ -2,6 +2,8 @@ import csv, sys
 import numpy as np
 import re
 
+# Implements a Hamiltonian Distance model logistic regression to act
+# as one potential baseline.  Draws from our work in CS221.
 def runHamiltonianModel(subject_id, subject_id_w):
 
     # collect subject data for correct user
